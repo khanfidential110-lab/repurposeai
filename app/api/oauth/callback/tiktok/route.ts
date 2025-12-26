@@ -1,7 +1,7 @@
 // OAuth Callback for TikTok
 import { NextRequest, NextResponse } from 'next/server';
-import { storeConnectedAccount, ConnectedAccount } from '@/lib/platforms/token-service';
-import { PLATFORM_CONFIGS } from '@/lib/platforms/types';
+import { storeConnectedAccount } from '@/lib/platforms/token-service';
+import { ConnectedAccount, PLATFORM_CONFIGS } from '@/lib/platforms/types';
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
