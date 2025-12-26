@@ -61,11 +61,14 @@ async function processWorkflow(workflow: Workflow) {
                 : mockNewVideo.title;
 
             await postToMultiplePlatforms(
-                [action.platform],
+                workflow.userId,
                 {
-                    text: title,
-                    media: [new File([videoBuffer], 'video.mp4', { type: 'video/mp4' })] // Mock File object
-                }
+                    default: {
+                        text: title,
+                        mediaUrl: mockNewVideo.url
+                    }
+                },
+                [action.platform]
             );
         }
 
