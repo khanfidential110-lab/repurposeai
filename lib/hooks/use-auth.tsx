@@ -27,8 +27,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const refreshUserData = async () => {
         if (user) {
-            const data = await getUserData(user.uid);
-            setUserData(data);
+            try {
+                const data = await getUserData(user.uid);
+                setUserData(data);
+            } catch (error) {
+                console.warn('Failed to fetch user data from Firestore:', error);
+                // Continue with null userData - app still works
+            }
         }
     };
 
@@ -43,8 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(firebaseUser);
 
             if (firebaseUser) {
-                const data = await getUserData(firebaseUser.uid);
-                setUserData(data);
+                try {
+                    const data = await getUserData(firebaseUser.uid);
+                    setUserData(data);
+                } catch (error) {
+                    console.warn('Failed to fetch user data from Firestore:', error);
+                    setUserData(null);
+                }
             } else {
                 setUserData(null);
             }

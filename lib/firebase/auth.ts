@@ -94,7 +94,15 @@ export async function getUserData(userId: string): Promise<UserData | null> {
 export async function signUp(email: string, password: string): Promise<UserCredential> {
     const { auth: firebaseAuth } = checkFirebaseReady();
     const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-    await createUserDocument(credential.user);
+
+    // Try to create user document, but don't block signup if Firestore fails
+    try {
+        await createUserDocument(credential.user);
+    } catch (error) {
+        console.warn('Failed to create user document in Firestore:', error);
+        // Signup still succeeds - user doc can be created later
+    }
+
     await sendEmailVerification(credential.user);
     return credential;
 }

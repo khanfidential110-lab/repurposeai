@@ -51,9 +51,27 @@ export default function LoginPage() {
             toast.success('Welcome!');
             router.push('/dashboard');
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Google login failed';
-            console.error('Google sign in error:', errorMessage);
-            toast.error('Google sign in failed. Please try again.');
+            console.error('Google sign in error:', error);
+
+            // Extract Firebase error code for better debugging
+            const firebaseError = error as { code?: string; message?: string };
+            const errorCode = firebaseError.code || 'unknown';
+            const errorMessage = firebaseError.message || 'Google login failed';
+
+            // Show specific error messages based on Firebase error codes
+            if (errorCode.includes('popup-closed-by-user')) {
+                toast.error('Sign-in popup was closed. Please try again.');
+            } else if (errorCode.includes('popup-blocked')) {
+                toast.error('Popup was blocked. Please allow popups for this site.');
+            } else if (errorCode.includes('unauthorized-domain')) {
+                toast.error('This domain is not authorized. Check Firebase Console.');
+            } else if (errorCode.includes('network-request-failed')) {
+                toast.error('Network error. Please check your connection.');
+            } else {
+                // Show the actual error for debugging
+                toast.error(`Sign-in failed: ${errorCode}`);
+                console.error('Full error:', errorCode, errorMessage);
+            }
         } finally {
             setGoogleLoading(false);
         }
