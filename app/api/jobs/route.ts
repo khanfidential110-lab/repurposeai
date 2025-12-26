@@ -24,12 +24,17 @@ interface Output {
     metadata?: Record<string, unknown>;
 }
 
+// Helper to get userId from request
+function getUserIdFromRequest(request: NextRequest): string {
+    return request.headers.get('x-user-id') || 'anonymous';
+}
+
 // GET - List jobs or get single job
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const jobId = searchParams.get('id');
-        const userId = searchParams.get('userId') || 'demo-user';
+        const userId = getUserIdFromRequest(request);
 
         if (jobId) {
             const job = jobs.get(jobId);
@@ -55,7 +60,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { userId = 'demo-user', inputType, inputFileName, inputFileSize } = body;
+        const userId = body.userId || 'anonymous';
+        const { inputType, inputFileName, inputFileSize } = body;
 
         const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 

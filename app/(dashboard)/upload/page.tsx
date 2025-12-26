@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { formatFileSize, getFileType } from '@/lib/utils/helpers';
 import { SUPPORTED_FILES } from '@/lib/utils/constants';
+import { useAuth } from '@/lib/hooks/use-auth';
 import toast from 'react-hot-toast';
 
 interface UploadedFile {
@@ -45,6 +46,7 @@ const fileTypeColors = {
 
 export default function UploadPage() {
     const router = useRouter();
+    const { user, loading: authLoading } = useAuth();
     const [files, setFiles] = useState<UploadedFile[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -145,7 +147,7 @@ export default function UploadPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        userId: 'demo-user',
+                        userId: user?.uid || 'anonymous',
                         inputType: fileObj.type,
                         inputFileName: fileObj.file.name,
                         inputFileSize: fileObj.file.size

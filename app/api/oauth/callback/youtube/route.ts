@@ -68,11 +68,15 @@ export async function GET(request: NextRequest) {
 
         const userInfo = await userResponse.json();
 
+        // Get userId from state parameter (passed during OAuth initiation)
+        const state = searchParams.get('state');
+        const userId = state ? JSON.parse(atob(state)).userId : 'anonymous';
+
         // Store the connected account
         const account: ConnectedAccount = {
             id: `youtube_${userInfo.id}_${Date.now()}`,
             platform: 'youtube',
-            userId: 'demo-user', // Replace with actual user ID from session
+            userId: userId, // Real user ID from state
             platformUserId: userInfo.id,
             platformUsername: userInfo.name || userInfo.email,
             profileImageUrl: userInfo.picture,

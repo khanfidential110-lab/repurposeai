@@ -58,10 +58,14 @@ export async function GET(request: NextRequest) {
         const userData = await userResponse.json();
         const userInfo = userData.data.user;
 
+        // Get userId from state parameter (passed during OAuth initiation)
+        const state = searchParams.get('state');
+        const userId = state ? JSON.parse(atob(state)).userId : 'anonymous';
+
         const account: ConnectedAccount = {
             id: `tiktok_${userData.data.open_id}_${Date.now()}`,
             platform: 'tiktok',
-            userId: 'demo-user',
+            userId: userId,
             platformUserId: userData.data.open_id,
             platformUsername: userInfo.display_name,
             profileImageUrl: userInfo.avatar_url,

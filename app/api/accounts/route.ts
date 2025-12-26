@@ -6,11 +6,15 @@ import {
     removeConnectedAccount
 } from '@/lib/platforms/token-service';
 
+// Helper to get userId from request
+function getUserIdFromRequest(request: NextRequest): string {
+    return request.headers.get('x-user-id') || 'anonymous';
+}
+
 // GET - List all connected accounts for current user
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        // In production, get user ID from session
-        const userId = 'demo-user';
+        const userId = getUserIdFromRequest(request);
 
         const accounts = getConnectedAccounts(userId);
 

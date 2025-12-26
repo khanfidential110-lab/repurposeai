@@ -8,7 +8,7 @@ import { Workflow } from './types';
  * This should be called by a Cron Job (e.g., every hour).
  */
 export async function checkWorkflows() {
-    const activeWorkflows = getActiveWorkflowTriggers();
+    const activeWorkflows = await getActiveWorkflowTriggers();
     console.log(`[Engine] Checking ${activeWorkflows.length} active workflows...`);
 
     const results = await Promise.allSettled(
@@ -73,11 +73,11 @@ async function processWorkflow(workflow: Workflow) {
         }
 
         // 4. Log Success
-        logWorkflowRun(workflow.id, true);
+        await logWorkflowRun(workflow.id, true);
         console.log(`[Engine] Workflow ${workflow.id} completed successfully.`);
 
     } catch (error) {
         console.error(`[Engine] Workflow ${workflow.id} failed:`, error);
-        logWorkflowRun(workflow.id, false);
+        await logWorkflowRun(workflow.id, false);
     }
 }

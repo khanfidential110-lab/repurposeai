@@ -71,11 +71,15 @@ export async function GET(request: NextRequest) {
         const userData = await userResponse.json();
         const userInfo = userData.data;
 
+        // Get userId from state parameter (passed during OAuth initiation)
+        const state = searchParams.get('state');
+        const userId = state ? JSON.parse(atob(state)).userId : 'anonymous';
+
         // Store the connected account
         const account: ConnectedAccount = {
             id: `twitter_${userInfo.id}_${Date.now()}`,
             platform: 'twitter',
-            userId: 'demo-user', // Replace with actual user ID from session
+            userId: userId, // Real user ID from state
             platformUserId: userInfo.id,
             platformUsername: `@${userInfo.username}`,
             profileImageUrl: userInfo.profile_image_url,
