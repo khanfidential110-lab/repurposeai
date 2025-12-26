@@ -1,0 +1,29 @@
+[
+  [
+    "wf_1766734138055_k25b0tm8m",
+    {
+      "id": "wf_1766734138055_k25b0tm8m",
+      "userId": "demo-user",
+      "name": "My Untitled Workflow",
+      "isActive": true,
+      "trigger": {
+        "platform": "tiktok",
+        "event": "new_video"
+      },
+      "actions": [
+        {
+          "platform": "youtube",
+          "action": "upload_video",
+          "settings": {
+            "removeWatermark": true
+          }
+        }
+      ],
+      "createdAt": "2025-12-26T07:28:58.055Z",
+      "stats": {
+        "processedCount": 0,
+        "failureCount": 0
+      }
+    }
+  ]
+]
