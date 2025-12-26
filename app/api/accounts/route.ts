@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     try {
         const userId = getUserIdFromRequest(request);
 
-        const accounts = getConnectedAccounts(userId);
+        const accounts = await getConnectedAccounts(userId);
 
         // Remove sensitive token data from response
         const safeAccounts = accounts.map(account => ({
@@ -62,7 +62,7 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        const account = getConnectedAccount(accountId);
+        const account = await getConnectedAccount(accountId);
         if (!account) {
             return NextResponse.json(
                 { error: 'Account not found' },
@@ -71,7 +71,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         // In production, verify user owns this account
-        removeConnectedAccount(accountId);
+        await removeConnectedAccount(accountId);
 
         return NextResponse.json({
             success: true,

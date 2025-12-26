@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
             connectedAt: new Date().toISOString(),
         };
 
-        storeConnectedAccount(account);
+        await storeConnectedAccount(account);
         return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings?success=tiktok_connected`);
     } catch (e) {
         console.error('TikTok OAuth error:', e);

@@ -24,7 +24,7 @@ export async function postToYouTube(
     userId: string,
     content: PostContent
 ): Promise<PostResult> {
-    const account = getConnectedAccountByPlatform(userId, 'youtube');
+    const account = await getConnectedAccountByPlatform(userId, 'youtube');
 
     if (!account) {
         return {
@@ -74,7 +74,7 @@ export async function postToTwitter(
     userId: string,
     content: PostContent
 ): Promise<PostResult> {
-    const account = getConnectedAccountByPlatform(userId, 'twitter');
+    const account = await getConnectedAccountByPlatform(userId, 'twitter');
 
     if (!account) {
         return {
@@ -134,7 +134,7 @@ export async function postToTwitter(
  * Post content to TikTok
  */
 export async function postToTikTok(userId: string, content: PostContent): Promise<PostResult> {
-    const account = getConnectedAccountByPlatform(userId, 'tiktok');
+    const account = await getConnectedAccountByPlatform(userId, 'tiktok');
     if (!account) return { success: false, platform: 'tiktok', error: 'No TikTok account connected' };
 
     const accessToken = await getValidAccessToken(account.id);
@@ -162,7 +162,7 @@ export async function postToTikTok(userId: string, content: PostContent): Promis
  * Post to LinkedIn
  */
 export async function postToLinkedIn(userId: string, content: PostContent): Promise<PostResult> {
-    const account = getConnectedAccountByPlatform(userId, 'linkedin');
+    const account = await getConnectedAccountByPlatform(userId, 'linkedin');
     if (!account) return { success: false, platform: 'linkedin', error: 'No LinkedIn account connected' };
 
     const accessToken = await getValidAccessToken(account.id);

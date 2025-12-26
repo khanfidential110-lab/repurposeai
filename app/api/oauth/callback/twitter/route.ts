@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
             connectedAt: new Date().toISOString(),
         };
 
-        storeConnectedAccount(account);
+        await storeConnectedAccount(account);
 
         console.log('Twitter account connected:', account.platformUsername);
 

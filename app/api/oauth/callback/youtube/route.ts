@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
             connectedAt: new Date().toISOString(),
         };
 
-        storeConnectedAccount(account);
+        await storeConnectedAccount(account);
 
         console.log('YouTube account connected:', account.platformUsername);
 
