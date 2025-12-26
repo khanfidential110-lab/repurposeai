@@ -36,7 +36,6 @@ const iconMap: { [key: string]: React.ElementType } = {
     Calendar,
     BarChart3,
     Settings,
-    Settings,
     Users,
     Workflow,
 };
