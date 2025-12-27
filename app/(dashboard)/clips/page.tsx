@@ -250,7 +250,7 @@ export default function ClipsPage() {
                                     Drop your video here or click to browse
                                 </p>
                                 <p className="text-foreground-muted text-sm">
-                                    Supports MP4, MOV, WebM • Max 4MB
+                                    Supports MP4, MOV, WebM • ☁️ No size limit
                                 </p>
                             </div>
                         </div>
