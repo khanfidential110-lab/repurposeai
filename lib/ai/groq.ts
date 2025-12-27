@@ -121,9 +121,28 @@ export class GroqClient {
     }
 
     async transcribe(file: File): Promise<string> {
+        const result = await this.transcribeWithTimestamps(file);
+        return result.text;
+    }
+
+    /**
+     * Transcribe audio/video with detailed timestamps for clip extraction
+     */
+    async transcribeWithTimestamps(file: File): Promise<{
+        text: string;
+        segments: Array<{
+            id: number;
+            start: number;
+            end: number;
+            text: string;
+        }>;
+        duration: number;
+    }> {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('model', 'whisper-large-v3');
+        formData.append('response_format', 'verbose_json');
+        formData.append('timestamp_granularities[]', 'segment');
 
         try {
             const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
@@ -140,10 +159,82 @@ export class GroqClient {
             }
 
             const data = await response.json();
-            return data.text || '';
+
+            // Parse segments from Groq response
+            const segments = (data.segments || []).map((seg: {
+                id: number;
+                start: number;
+                end: number;
+                text: string;
+            }) => ({
+                id: seg.id,
+                start: seg.start,
+                end: seg.end,
+                text: seg.text.trim(),
+            }));
+
+            return {
+                text: data.text || '',
+                segments,
+                duration: data.duration || 0,
+            };
         } catch (error) {
             console.error('Groq transcription failed:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Use LLM to identify the best clips from a transcript
+     */
+    async identifyBestClips(
+        transcript: string,
+        segments: Array<{ id: number; start: number; end: number; text: string }>,
+        options: { numClips?: number; style?: string } = {}
+    ): Promise<Array<{ start: number; end: number; text: string; reason: string }>> {
+        const { numClips = 3, style = 'viral' } = options;
+
+        const prompt = `Analyze this video transcript and identify the ${numClips} best clips for ${style} content.
+
+TRANSCRIPT WITH TIMESTAMPS:
+${segments.map(s => `[${s.start.toFixed(1)}s - ${s.end.toFixed(1)}s]: ${s.text}`).join('\n')}
+
+Return a JSON array with the best ${numClips} clips. Each clip should have:
+- start: start time in seconds
+- end: end time in seconds  
+- text: the text content of the clip
+- reason: brief explanation why this is a good clip
+
+Focus on:
+- Emotional moments
+- Key insights or tips
+- Funny/engaging moments
+- Strong opening hooks
+
+Return ONLY valid JSON array, no other text.`;
+
+        const response = await this.generateWithSystemPrompt(
+            'You are a video editor expert at identifying viral-worthy clips. Return only valid JSON.',
+            prompt,
+            { temperature: 0.3 }
+        );
+
+        try {
+            // Extract JSON from response
+            const jsonMatch = response.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) {
+                throw new Error('No JSON array found in response');
+            }
+            return JSON.parse(jsonMatch[0]);
+        } catch (error) {
+            console.error('Failed to parse LLM clips response:', error);
+            // Fallback: return first N segments
+            return segments.slice(0, numClips).map(s => ({
+                start: s.start,
+                end: s.end,
+                text: s.text,
+                reason: 'Auto-selected segment'
+            }));
         }
     }
 }
