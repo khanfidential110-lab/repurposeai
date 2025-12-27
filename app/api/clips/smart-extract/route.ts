@@ -60,8 +60,8 @@ function getAspectRatioFilter(aspectRatio: AspectRatioKey): string {
  * POST /api/clips/smart-extract
  * 
  * Complete pipeline:
- * 1. Upload video
- * 2. Transcribe with Groq Whisper (FREE)
+ * 1. Receive video URL (from Firebase Storage)
+ * 2. Download and transcribe with Groq Whisper (FREE)
  * 3. AI identifies best clips using Groq LLM (FREE)
  * 4. Extract clips with FFmpeg (FREE)
  * 5. Convert to target aspect ratio (FREE)
@@ -81,28 +81,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const formData = await request.formData();
-        const file = formData.get('file') as File;
-        const numClips = parseInt(formData.get('numClips') as string) || 3;
-        const style = (formData.get('style') as string) || 'viral';
-        const autoExtract = formData.get('autoExtract') === 'true';
-        const aspectRatio = (formData.get('aspectRatio') as AspectRatioKey) || 'original';
+        // Accept JSON body with videoUrl (from Firebase Storage)
+        const body = await request.json();
+        const { videoUrl, numClips = 3, style = 'viral', autoExtract = true, aspectRatio = 'original' } = body;
 
-        if (!file) {
-            return NextResponse.json({ error: 'Video file is required' }, { status: 400 });
-        }
-
-        // Validate file size (max 25MB for Groq)
-        if (file.size > 25 * 1024 * 1024) {
-            return NextResponse.json(
-                { error: 'File too large. Maximum size is 25MB for transcription.' },
-                { status: 400 }
-            );
+        if (!videoUrl) {
+            return NextResponse.json({ error: 'videoUrl is required' }, { status: 400 });
         }
 
         console.log('[SmartClip] Starting pipeline:', {
-            fileName: file.name,
-            size: file.size,
+            videoUrl: videoUrl.substring(0, 50) + '...',
             numClips,
             style,
             autoExtract,
@@ -113,17 +101,39 @@ export async function POST(request: NextRequest) {
         const tempDir = path.join(os.tmpdir(), 'repurpose-smart-clips');
         await fs.mkdir(tempDir, { recursive: true });
 
-        // Save uploaded file
-        const inputPath = path.join(tempDir, `input_${Date.now()}_${file.name}`);
-        const fileBuffer = await file.arrayBuffer();
-        await fs.writeFile(inputPath, Buffer.from(fileBuffer));
+        // Download video from Firebase Storage URL
+        console.log('[SmartClip] Downloading video from Firebase...');
+        const videoResponse = await fetch(videoUrl);
+        if (!videoResponse.ok) {
+            throw new Error('Failed to download video from storage');
+        }
+
+        const videoBuffer = await videoResponse.arrayBuffer();
+        const inputPath = path.join(tempDir, `input_${Date.now()}.mp4`);
+        await fs.writeFile(inputPath, Buffer.from(videoBuffer));
         tempFiles.push(inputPath);
+
+        console.log('[SmartClip] Video downloaded:', { size: videoBuffer.byteLength });
+
+        // Extract audio for transcription (Groq needs audio file)
+        const audioPath = path.join(tempDir, `audio_${Date.now()}.mp3`);
+        try {
+            await execAsync(`ffmpeg -i "${inputPath}" -vn -acodec libmp3lame -y "${audioPath}"`);
+            tempFiles.push(audioPath);
+        } catch (ffmpegError) {
+            console.error('[SmartClip] Failed to extract audio:', ffmpegError);
+            throw new Error('Failed to extract audio from video');
+        }
+
+        // Read audio file for Groq transcription
+        const audioBuffer = await fs.readFile(audioPath);
+        const audioFile = new File([audioBuffer], 'audio.mp3', { type: 'audio/mpeg' });
 
         // Step 1: Transcribe with timestamps using Groq
         console.log('[SmartClip] Step 1: Transcribing with Groq...');
         const groq = getGroqClient();
 
-        const transcription = await groq.transcribeWithTimestamps(file);
+        const transcription = await groq.transcribeWithTimestamps(audioFile);
 
         console.log('[SmartClip] Transcription complete:', {
             textLength: transcription.text.length,

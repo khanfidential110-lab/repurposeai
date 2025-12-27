@@ -15,9 +15,12 @@ import {
     ChevronDown,
     ChevronUp,
     AlertCircle,
+    Cloud,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatFileSize } from '@/lib/utils/helpers';
+import { uploadFile } from '@/lib/firebase/storage';
+import { useAuth } from '@/lib/hooks/use-auth';
 import toast from 'react-hot-toast';
 
 interface TranscriptSegment {
@@ -48,10 +51,12 @@ interface ExtractionResult {
 }
 
 export default function ClipsPage() {
+    const { user } = useAuth();
     const [file, setFile] = useState<File | null>(null);
     const [dragActive, setDragActive] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [progress, setProgress] = useState<string>('');
+    const [uploadProgress, setUploadProgress] = useState<number>(0);
     const [result, setResult] = useState<ExtractionResult | null>(null);
     const [expandedClip, setExpandedClip] = useState<number | null>(null);
     const [showTranscript, setShowTranscript] = useState(false);
@@ -88,11 +93,6 @@ export default function ClipsPage() {
 
         const droppedFile = e.dataTransfer.files[0];
         if (droppedFile && droppedFile.type.startsWith('video/')) {
-            // Vercel hobby plan has 4.5MB limit
-            if (droppedFile.size > 4 * 1024 * 1024) {
-                toast.error('File too large! Max 4MB for Vercel hosting. Compress your video first.');
-                return;
-            }
             setFile(droppedFile);
             setResult(null);
         } else {
@@ -103,11 +103,6 @@ export default function ClipsPage() {
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
-            // Vercel hobby plan has 4.5MB limit
-            if (selectedFile.size > 4 * 1024 * 1024) {
-                toast.error('File too large! Max 4MB for Vercel hosting. Compress your video first.');
-                return;
-            }
             setFile(selectedFile);
             setResult(null);
         }
@@ -117,22 +112,36 @@ export default function ClipsPage() {
         if (!file) return;
 
         setProcessing(true);
-        setProgress('Uploading video...');
+        setUploadProgress(0);
+        setProgress('Uploading to cloud...');
         setResult(null);
 
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('numClips', numClips.toString());
-            formData.append('style', style);
-            formData.append('autoExtract', autoExtract.toString());
-            formData.append('aspectRatio', aspectRatio);
+            // Step 1: Upload video to Firebase Storage
+            const userId = user?.uid || 'anonymous';
+            const { url: videoUrl } = await uploadFile(
+                userId,
+                file,
+                (progress) => {
+                    setUploadProgress(progress);
+                    setProgress(`Uploading... ${Math.round(progress)}%`);
+                }
+            );
 
-            setProgress('Transcribing with AI...');
+            setProgress('Processing video with AI...');
+            setUploadProgress(100);
 
+            // Step 2: Send URL to API for processing (no file size limit!)
             const response = await fetch('/api/clips/smart-extract', {
                 method: 'POST',
-                body: formData,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    videoUrl,
+                    numClips,
+                    style,
+                    autoExtract,
+                    aspectRatio,
+                }),
             });
 
             if (!response.ok) {
