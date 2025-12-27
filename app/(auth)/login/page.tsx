@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
-import { signIn, signInWithGoogle } from '@/lib/firebase/auth';
+import { signIn, signInWithGoogle, checkGoogleRedirectResult } from '@/lib/firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import toast from 'react-hot-toast';
@@ -16,6 +16,26 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
+
+    // Check for Google redirect result on page load
+    useEffect(() => {
+        const handleRedirectResult = async () => {
+            try {
+                const result = await checkGoogleRedirectResult();
+                if (result) {
+                    toast.success('Welcome!');
+                    router.push('/dashboard');
+                }
+            } catch (error) {
+                console.error('Redirect result error:', error);
+                const firebaseError = error as { code?: string };
+                if (firebaseError.code && !firebaseError.code.includes('no-auth-event')) {
+                    toast.error('Google sign-in failed. Please try again.');
+                }
+            }
+        };
+        handleRedirectResult();
+    }, [router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,36 +67,17 @@ export default function LoginPage() {
     const handleGoogleSignIn = async () => {
         setGoogleLoading(true);
         try {
+            // This will redirect to Google, page will reload after
             await signInWithGoogle();
-            toast.success('Welcome!');
-            router.push('/dashboard');
+            // Note: We won't reach this point - page redirects to Google
         } catch (error: unknown) {
             console.error('Google sign in error:', error);
-
-            // Extract Firebase error code for better debugging
             const firebaseError = error as { code?: string; message?: string };
             const errorCode = firebaseError.code || 'unknown';
-            const errorMessage = firebaseError.message || 'Google login failed';
-
-            // Show specific error messages based on Firebase error codes
-            if (errorCode.includes('popup-closed-by-user')) {
-                toast.error('Sign-in popup was closed. Please try again.');
-            } else if (errorCode.includes('popup-blocked')) {
-                toast.error('Popup was blocked. Please allow popups for this site.');
-            } else if (errorCode.includes('unauthorized-domain')) {
-                toast.error('This domain is not authorized. Check Firebase Console.');
-            } else if (errorCode.includes('network-request-failed')) {
-                toast.error('Network error. Please check your connection.');
-            } else {
-                // Show the actual error for debugging
-                toast.error(`Sign-in failed: ${errorCode}`);
-                console.error('Full error:', errorCode, errorMessage);
-            }
-        } finally {
+            toast.error(`Sign-in failed: ${errorCode}`);
             setGoogleLoading(false);
         }
     };
-
     return (
         <div className="min-h-screen bg-background flex">
             {/* Left side - Branding */}

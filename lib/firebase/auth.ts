@@ -2,6 +2,8 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     GoogleAuthProvider,
     signOut as firebaseSignOut,
     sendPasswordResetEmail,
@@ -113,12 +115,27 @@ export async function signIn(email: string, password: string): Promise<UserCrede
     return signInWithEmailAndPassword(firebaseAuth, email, password);
 }
 
-// Sign in with Google
-export async function signInWithGoogle(): Promise<UserCredential> {
+// Sign in with Google (uses redirect to avoid popup COOP issues)
+export async function signInWithGoogle(): Promise<void> {
     const { auth: firebaseAuth } = checkFirebaseReady();
-    const credential = await signInWithPopup(firebaseAuth, googleProvider);
-    await createUserDocument(credential.user);
-    return credential;
+    // Use redirect instead of popup to avoid Cross-Origin-Opener-Policy issues
+    await signInWithRedirect(firebaseAuth, googleProvider);
+}
+
+// Check for Google redirect result (call this on app init)
+export async function checkGoogleRedirectResult(): Promise<UserCredential | null> {
+    const { auth: firebaseAuth } = checkFirebaseReady();
+    try {
+        const result = await getRedirectResult(firebaseAuth);
+        if (result) {
+            await createUserDocument(result.user);
+            return result;
+        }
+        return null;
+    } catch (error) {
+        console.error('Google redirect result error:', error);
+        throw error;
+    }
 }
 
 // Sign out
