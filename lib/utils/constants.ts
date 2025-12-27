@@ -125,6 +125,7 @@ export const JOB_STATUS = {
 export const NAV_ITEMS = {
     dashboard: { label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
     upload: { label: 'Upload', href: '/upload', icon: 'Upload' },
+    clips: { label: 'Smart Clips', href: '/clips', icon: 'Scissors' },
     jobs: { label: 'Jobs', href: '/jobs', icon: 'FileText' },
     workflows: { label: 'Workflows', href: '/workflows', icon: 'Workflow' },
     scheduler: { label: 'Scheduler', href: '/scheduler', icon: 'Calendar' },

@@ -31,6 +31,31 @@ interface ClipSuggestion {
     reason: string;
 }
 
+// Aspect ratio presets for social media platforms
+const ASPECT_RATIOS = {
+    original: { width: 0, height: 0, label: 'Original' },
+    '9:16': { width: 1080, height: 1920, label: 'TikTok / Reels / Shorts' },
+    '1:1': { width: 1080, height: 1080, label: 'Instagram Square' },
+    '16:9': { width: 1920, height: 1080, label: 'YouTube / Landscape' },
+    '4:5': { width: 1080, height: 1350, label: 'Instagram Portrait' },
+} as const;
+
+type AspectRatioKey = keyof typeof ASPECT_RATIOS;
+
+/**
+ * Generate FFmpeg filter for aspect ratio conversion
+ * Uses center crop then scale to maintain quality
+ */
+function getAspectRatioFilter(aspectRatio: AspectRatioKey): string {
+    if (aspectRatio === 'original') return '';
+
+    const { width, height } = ASPECT_RATIOS[aspectRatio];
+
+    // Calculate crop to center the video at the target aspect ratio
+    // Then scale to the exact dimensions
+    return `-vf "scale=w='if(gt(a,${width}/${height}),${width},-2)':h='if(gt(a,${width}/${height}),-2,${height})',crop=${width}:${height},setsar=1"`;
+}
+
 /**
  * POST /api/clips/smart-extract
  * 
@@ -39,6 +64,7 @@ interface ClipSuggestion {
  * 2. Transcribe with Groq Whisper (FREE)
  * 3. AI identifies best clips using Groq LLM (FREE)
  * 4. Extract clips with FFmpeg (FREE)
+ * 5. Convert to target aspect ratio (FREE)
  */
 export async function POST(request: NextRequest) {
     const tempFiles: string[] = [];
@@ -60,6 +86,7 @@ export async function POST(request: NextRequest) {
         const numClips = parseInt(formData.get('numClips') as string) || 3;
         const style = (formData.get('style') as string) || 'viral';
         const autoExtract = formData.get('autoExtract') === 'true';
+        const aspectRatio = (formData.get('aspectRatio') as AspectRatioKey) || 'original';
 
         if (!file) {
             return NextResponse.json({ error: 'Video file is required' }, { status: 400 });
@@ -78,7 +105,8 @@ export async function POST(request: NextRequest) {
             size: file.size,
             numClips,
             style,
-            autoExtract
+            autoExtract,
+            aspectRatio
         });
 
         // Create temp directory
@@ -143,11 +171,14 @@ export async function POST(request: NextRequest) {
 
                 try {
                     const duration = clip.end - clip.start;
+                    const aspectFilter = getAspectRatioFilter(aspectRatio);
 
-                    // Use FFmpeg to extract clip
-                    await execAsync(
-                        `ffmpeg -i "${inputPath}" -ss ${clip.start} -t ${duration} -c:v libx264 -c:a aac -y "${outputPath}"`
-                    );
+                    // Use FFmpeg to extract clip with optional aspect ratio conversion
+                    const ffmpegCmd = aspectFilter
+                        ? `ffmpeg -i "${inputPath}" -ss ${clip.start} -t ${duration} ${aspectFilter} -c:v libx264 -preset fast -c:a aac -y "${outputPath}"`
+                        : `ffmpeg -i "${inputPath}" -ss ${clip.start} -t ${duration} -c:v libx264 -c:a aac -y "${outputPath}"`;
+
+                    await execAsync(ffmpegCmd);
 
                     tempFiles.push(outputPath);
 

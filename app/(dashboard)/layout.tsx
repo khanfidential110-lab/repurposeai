@@ -19,6 +19,7 @@ import {
     Zap,
     Users,
     Workflow,
+    Scissors,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/helpers';
 import { NAV_ITEMS } from '@/lib/utils/constants';
@@ -38,6 +39,7 @@ const iconMap: { [key: string]: React.ElementType } = {
     Settings,
     Users,
     Workflow,
+    Scissors,
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
