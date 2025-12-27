@@ -4,5 +4,16 @@
             "path": "/api/cron/workflows",
             "schedule": "0 0 * * *"
         }
-    ]
+    ],
+    "functions": {
+        "app/api/clips/smart-extract/route.ts": {
+            "maxDuration": 60
+        },
+        "app/api/ai/transcribe/route.ts": {
+            "maxDuration": 60
+        },
+        "app/api/ai/repurpose/route.ts": {
+            "maxDuration": 60
+        }
+    }
 }

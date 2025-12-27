@@ -88,6 +88,11 @@ export default function ClipsPage() {
 
         const droppedFile = e.dataTransfer.files[0];
         if (droppedFile && droppedFile.type.startsWith('video/')) {
+            // Vercel hobby plan has 4.5MB limit
+            if (droppedFile.size > 4 * 1024 * 1024) {
+                toast.error('File too large! Max 4MB for Vercel hosting. Compress your video first.');
+                return;
+            }
             setFile(droppedFile);
             setResult(null);
         } else {
@@ -98,6 +103,11 @@ export default function ClipsPage() {
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
+            // Vercel hobby plan has 4.5MB limit
+            if (selectedFile.size > 4 * 1024 * 1024) {
+                toast.error('File too large! Max 4MB for Vercel hosting. Compress your video first.');
+                return;
+            }
             setFile(selectedFile);
             setResult(null);
         }
@@ -231,7 +241,7 @@ export default function ClipsPage() {
                                     Drop your video here or click to browse
                                 </p>
                                 <p className="text-foreground-muted text-sm">
-                                    Supports MP4, MOV, WebM • Max 25MB
+                                    Supports MP4, MOV, WebM • Max 4MB
                                 </p>
                             </div>
                         </div>
