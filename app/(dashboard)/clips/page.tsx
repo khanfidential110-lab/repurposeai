@@ -119,14 +119,30 @@ export default function ClipsPage() {
         try {
             // Step 1: Upload video to Firebase Storage
             const userId = user?.uid || 'anonymous';
-            const { url: videoUrl } = await uploadFile(
-                userId,
-                file,
-                (progress) => {
-                    setUploadProgress(progress);
-                    setProgress(`Uploading... ${Math.round(progress)}%`);
+
+            let videoUrl: string;
+            try {
+                const uploadResult = await uploadFile(
+                    userId,
+                    file,
+                    (progress) => {
+                        setUploadProgress(progress);
+                        setProgress(`Uploading... ${Math.round(progress)}%`);
+                    }
+                );
+                videoUrl = uploadResult.url;
+            } catch (uploadError) {
+                console.error('Firebase upload error:', uploadError);
+                // Check for common errors
+                const errorMessage = uploadError instanceof Error ? uploadError.message : 'Upload failed';
+                if (errorMessage.includes('storage/unauthorized') || errorMessage.includes('permission')) {
+                    throw new Error('Firebase Storage permissions error. Please update storage rules in Firebase Console.');
                 }
-            );
+                if (errorMessage.includes('not configured') || errorMessage.includes('not-found')) {
+                    throw new Error('Firebase Storage not configured. Please check your Firebase setup.');
+                }
+                throw new Error(`Upload failed: ${errorMessage}`);
+            }
 
             setProgress('Processing video with AI...');
             setUploadProgress(100);
